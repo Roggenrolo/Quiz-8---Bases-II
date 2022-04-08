@@ -1,0 +1,165 @@
+// 1
+
+docker exec -it touristrouter1 mongo
+use turismo
+
+db.paquetes.insert({
+    nombre: "luna de miel",
+    incluye: [
+        "hospedaje",
+        "alimentos y bebidas",
+        "transporte"
+    ],
+    pais: "costa rica"
+});
+db.paquetes.insert({
+    nombre: "estudiantes",
+    incluye: [
+        "tours",
+        "guía",
+        "propinas"
+    ],
+    pais: "costa rica"
+});
+db.paquetes.insert({
+    nombre: "graduacion",
+    incluye: [
+        "seguro",
+        "impuestos",
+        "entradas"
+    ],
+    pais: "costa rica"
+});
+db.paquetes.insert({
+    nombre: "luna de miel",
+    incluye: [
+        "hospedaje",
+        "alimentos y bebidas",
+        "transporte"
+    ],
+    pais: "kenia"
+});
+db.paquetes.insert({
+    nombre: "estudiantes",
+    incluye: [
+        "tours",
+        "guía",
+        "propinas"
+    ],
+    pais: "kenia"
+});
+db.paquetes.insert({
+    nombre: "graduacion",
+    incluye: [
+        "seguro",
+        "impuestos",
+        "entradas"
+    ],
+    pais: "kenia"
+});
+db.paquetes.insert({
+    nombre: "luna de miel",
+    incluye: [
+        "hospedaje",
+        "alimentos y bebidas",
+        "transporte"
+    ],
+    pais: "usa"
+});
+db.paquetes.insert({
+    nombre: "estudiantes",
+    incluye: [
+        "tours",
+        "guía",
+        "propinas"
+    ],
+    pais: "usa"
+});
+db.paquetes.insert({
+    nombre: "graduacion",
+    incluye: [
+        "seguro",
+        "impuestos",
+        "entradas"
+    ],
+    pais: "usa"
+});
+
+exit
+
+// 2
+
+docker volume create vol_montanna
+docker run -d --net turismonet -v vol_montanna:/data/configdb --ip 10.0.0.14 --name montanna mongo mongod --port 27017 --configsvr --replSet "repconfig" --dbpath /data/configdb
+docker exec -it volcan mongo
+rs.add({host:"10.0.0.14:27017"});
+exit
+
+// 3
+docker run -dp 27017:27017 --net turismonet --ip 10.0.0.2 --name touristrouter1 mongo mongos --port 27017 --configdb repconfig/10.0.0.3:27017,10.0.0.4:27017,10.0.0.14:27017
+
+docker exec -it touristrouter1 mongo
+
+sh.addShard("repcr/10.0.0.5:27017");
+sh.addShard("repkenia/10.0.0.7:27017");
+sh.addShard("repusa/10.0.0.9:27017");
+
+sh.addShardTag("repcr","costa rica");
+sh.addShardTag("repkenia","kenia");
+sh.addShardTag("repusa","usa");
+
+sh.addTagRange(
+    "turismo.atracciones",
+    {pais: "costa rica"},
+    {pais: "costa rica0"},
+    "costa rica"
+);
+
+sh.addTagRange(
+    "turismo.atracciones",
+    {pais: "kenia"},
+    {pais: "kenia0"},
+    "kenia"
+);
+
+sh.addTagRange(
+    "turismo.atracciones",
+    {pais: "usa"},
+    {pais: "usa0"},
+    "usa"
+);
+
+sh.enableSharding("turismo");
+sh.shardCollection("turismo.atracciones", {pais: 1});
+
+exit
+
+docker run -dp 27018:27017 --net turismonet --ip 10.0.0.15 --name touristrouter2 mongo mongos --port 27017 --configdb repconfig/10.0.0.3:27017,10.0.0.4:27017,10.0.0.14:27017
+
+docker exec -it touristrouter2 mongo
+
+// 4
+
+sh.addTagRange(
+    "turismo.operadores",
+    {pais: "costa rica"},
+    {pais: "costa rica0"},
+    "costa rica"
+);
+
+sh.addTagRange(
+    "turismo.operadores",
+    {pais: "kenia"},
+    {pais: "kenia0"},
+    "kenia"
+);
+
+sh.addTagRange(
+    "turismo.operadores",
+    {pais: "usa"},
+    {pais: "usa0"},
+    "usa"
+);
+
+sh.enableSharding("turismo");
+sh.shardCollection("turismo.operadores", {pais: "hashed"});
