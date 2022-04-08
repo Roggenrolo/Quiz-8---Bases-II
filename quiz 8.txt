@@ -140,26 +140,4 @@ docker exec -it touristrouter2 mongo
 
 // 4
 
-sh.addTagRange(
-    "turismo.operadores",
-    {pais: "costa rica"},
-    {pais: "costa rica0"},
-    "costa rica"
-);
-
-sh.addTagRange(
-    "turismo.operadores",
-    {pais: "kenia"},
-    {pais: "kenia0"},
-    "kenia"
-);
-
-sh.addTagRange(
-    "turismo.operadores",
-    {pais: "usa"},
-    {pais: "usa0"},
-    "usa"
-);
-
-sh.enableSharding("turismo");
 sh.shardCollection("turismo.operadores", {pais: "hashed"});
